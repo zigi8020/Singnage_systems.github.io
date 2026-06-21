@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
@@ -82,23 +83,26 @@
     position:absolute;top:0;left:0;
     width:210mm;height:297mm;
     transform-origin:top left;
+    padding-top:var(--mt,5mm);
     display:grid;
-    grid-template-columns:repeat(var(--cols,2), 1fr);
-    grid-template-rows:repeat(var(--rows,8), 1fr);
+    grid-template-columns:repeat(var(--cols,2), var(--lw,105mm));
+    grid-template-rows:repeat(var(--rows,8), var(--lh,35mm));
+    justify-content:center;
+    align-content:start;
   }
 
   .label{
     border:.4mm dashed #e2e2e2;padding:2.5mm 4mm;
     display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;position:relative;
   }
-  .label .lname{font-size:calc(11pt * var(--sc,1));font-weight:700;line-height:1.15;max-height:2.6em;overflow:hidden}
+  .label .lname{font-size:calc(13pt * var(--sc,1));font-weight:700;line-height:1.15;max-height:2.6em;overflow:hidden}
   .label .midrow{display:flex;justify-content:space-between;align-items:flex-end;gap:3mm}
   .label .price{font-size:calc(19pt * var(--sc,1));font-weight:800;letter-spacing:-.5px;white-space:nowrap}
   .label .price .ils{font-size:calc(12pt * var(--sc,1));font-weight:600}
-  .label .per100{font-size:calc(8pt * var(--sc,1));color:#333;text-align:left;line-height:1.2}
-  .label .per100 b{font-size:calc(9.5pt * var(--sc,1))}
+  .label .per100{font-size:calc(11.5pt * var(--sc,1));color:#222;text-align:left;line-height:1.25;font-weight:600}
+  .label .per100 b{font-size:calc(14.5pt * var(--sc,1));font-weight:800}
   .label .barcode-wrap{display:flex;flex-direction:column;align-items:center;margin-top:1mm}
-  .label svg{max-width:100%;max-height:calc(13mm * var(--sc,1));height:auto}
+  .label svg{max-width:78%;max-height:calc(9mm * var(--sc,1));height:auto}
   .label.empty{border-color:#f0f0f0}
 
   @media (max-width:980px){
@@ -129,6 +133,19 @@
     <label class="layout-pick">
       פריסה:
       <select id="layoutSel" onchange="setLayout(this.value)"></select>
+    </label>
+    <label class="layout-pick">
+      שוליים עליון/תחתון:
+      <select id="marginSel" onchange="setMargin(this.value)">
+        <option value="auto" selected>אוטומטי (5 מ"מ)</option>
+        <option value="0">0 מ"מ</option>
+        <option value="3">3 מ"מ</option>
+        <option value="4">4 מ"מ</option>
+        <option value="5">5 מ"מ</option>
+        <option value="6">6 מ"מ</option>
+        <option value="7">7 מ"מ</option>
+        <option value="8">8 מ"מ</option>
+      </select>
     </label>
     <button class="ghost" onclick="loadSample()">טען דוגמה</button>
     <button class="ghost" onclick="exportData()">⬇️ גיבוי</button>
@@ -188,18 +205,20 @@
 <script>
 const UNITS = {g:{label:"גרם",base:1},kg:{label:'ק"ג',base:1000},ml:{label:'מ"ל',base:1},l:{label:"ליטר",base:1000}};
 
-// פריסות נפוצות של דפי מדבקות A4 (210×297 מ"מ). sc = יחס גודל הטקסט.
+// פריסות דפי מדבקות A4 (210×297 מ"מ).
+// lw/lh = מידות מדבקה אמיתיות במ"מ. mt = שוליים עליונים (וזהים בתחתית). sc = יחס גודל טקסט.
 const LAYOUTS = {
-  "2x8": {cols:2, rows:8, sc:1.00, name:"2 × 8 — 16 מדבקות (105 × 37 מ\"מ)"},
-  "2x7": {cols:2, rows:7, sc:1.10, name:"2 × 7 — 14 מדבקות (105 × 42 מ\"מ)"},
-  "2x6": {cols:2, rows:6, sc:1.20, name:"2 × 6 — 12 מדבקות (105 × 49 מ\"מ)"},
-  "2x5": {cols:2, rows:5, sc:1.30, name:"2 × 5 — 10 מדבקות (105 × 59 מ\"מ)"},
-  "2x4": {cols:2, rows:4, sc:1.45, name:"2 × 4 — 8 מדבקות (105 × 74 מ\"מ)"},
-  "3x8": {cols:3, rows:8, sc:0.80, name:"3 × 8 — 24 מדבקות (70 × 37 מ\"מ)"},
-  "3x7": {cols:3, rows:7, sc:0.85, name:"3 × 7 — 21 מדבקות (70 × 42 מ\"מ)"},
-  "1x4": {cols:1, rows:4, sc:1.70, name:"1 × 4 — 4 מדבקות גדולות (210 × 74 מ\"מ)"},
+  "2x8": {cols:2, rows:8, lw:105, lh:35, mt:5,  sc:1.00, name:"2 × 8 — 16 מדבקות (105 × 35 מ\"מ)"},
+  "2x7": {cols:2, rows:7, lw:105, lh:40, mt:5,  sc:1.15, name:"2 × 7 — 14 מדבקות (105 × 40 מ\"מ)"},
+  "2x6": {cols:2, rows:6, lw:105, lh:46, mt:5,  sc:1.25, name:"2 × 6 — 12 מדבקות (105 × 46 מ\"מ)"},
+  "2x5": {cols:2, rows:5, lw:105, lh:56, mt:5,  sc:1.35, name:"2 × 5 — 10 מדבקות (105 × 56 מ\"מ)"},
+  "2x4": {cols:2, rows:4, lw:105, lh:70, mt:5,  sc:1.50, name:"2 × 4 — 8 מדבקות (105 × 70 מ\"מ)"},
+  "3x8": {cols:3, rows:8, lw:70,  lh:35, mt:5,  sc:0.80, name:"3 × 8 — 24 מדבקות (70 × 35 מ\"מ)"},
+  "3x7": {cols:3, rows:7, lw:70,  lh:40, mt:5,  sc:0.85, name:"3 × 7 — 21 מדבקות (70 × 40 מ\"מ)"},
+  "1x4": {cols:1, rows:4, lw:210, lh:70, mt:5,  sc:1.70, name:"1 × 4 — 4 מדבקות גדולות (210 × 70 מ\"מ)"},
 };
 let currentLayout = "2x8";
+let marginOverride = null; // אם המשתמש דורס ידנית את השוליים (null = אוטומטי לפי הפריסה)
 
 let products = [];
 let uid = 0;
@@ -310,9 +329,13 @@ function renderSheet(){
     scaler.className="scaler no-print-scale";
     const sheet=document.createElement("div");
     sheet.className="sheet";
+    const mt = (marginOverride!==null) ? marginOverride : L.mt;
     sheet.style.setProperty("--cols",L.cols);
     sheet.style.setProperty("--rows",L.rows);
     sheet.style.setProperty("--sc",L.sc);
+    sheet.style.setProperty("--lw",L.lw+"mm");
+    sheet.style.setProperty("--lh",L.lh+"mm");
+    sheet.style.setProperty("--mt",mt+"mm");
     for(let i=0;i<perPage;i++){
       const item=valid[pg*perPage+i];
       const cell=document.createElement("div");
@@ -341,7 +364,7 @@ function renderSheet(){
   document.querySelectorAll("svg.bc").forEach(svg=>{
     const code=svg.getAttribute("data-code");
     if(code && code.length===13){
-      try{JsBarcode(svg,code,{format:"EAN13",width:1.6*sc,height:34*sc,fontSize:13*sc,margin:0,displayValue:true});}
+      try{JsBarcode(svg,code,{format:"EAN13",width:1.4*sc,height:24*sc,fontSize:12*sc,margin:0,displayValue:true});}
       catch(e){svg.parentElement.innerHTML=`<div style="font-size:${8*sc}pt;color:#999">${code}</div>`;}
     }else if(code){
       svg.parentElement.innerHTML=`<div style="font-size:${8*sc}pt;color:#bbb">${code||""}</div>`;
@@ -369,6 +392,11 @@ window.addEventListener("load",fitSheets);
 
 function setLayout(key){
   if(LAYOUTS[key]){currentLayout=key; renderSheet(); save();}
+}
+
+function setMargin(val){
+  marginOverride = (val==="auto") ? null : (parseFloat(val)||0);
+  renderSheet(); save();
 }
 
 // ---- סורק ברקוד דרך המצלמה ----
@@ -436,7 +464,7 @@ function initLayoutSelect(){
 const STORE_KEY="minimarket_labels_v1";
 function save(){
   try{
-    localStorage.setItem(STORE_KEY, JSON.stringify({layout:currentLayout, products}));
+    localStorage.setItem(STORE_KEY, JSON.stringify({layout:currentLayout, margin:marginOverride, products}));
   }catch(e){/* מצב פרטי/חסום - מתעלמים */}
 }
 function load(){
@@ -449,6 +477,7 @@ function load(){
       // משחזרים מזהים תקינים
       products.forEach(p=>{p.id=++uid;});
       if(data.layout && LAYOUTS[data.layout]) currentLayout=data.layout;
+      if(data.margin===null || typeof data.margin==="number") marginOverride=data.margin;
       return true;
     }
   }catch(e){}
@@ -487,6 +516,7 @@ function importData(input){
 initLayoutSelect();
 if(load()){
   document.getElementById("layoutSel").value=currentLayout;
+  document.getElementById("marginSel").value = (marginOverride===null) ? "auto" : String(marginOverride);
   renderRows();
 }else{
   clearAll();
