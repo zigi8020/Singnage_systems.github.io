@@ -77,6 +77,44 @@
 
   .note{font-size:12.5px;color:var(--muted);padding:0 18px 14px}
 
+  /* ----- MOBILE: כרטיסים ערוכים במקום טבלה רחבה ----- */
+  @media (max-width:640px){
+    .topbar{padding:10px 14px;gap:8px}
+    .topbar h1{font-size:16px}
+    .actions{width:100%;gap:6px}
+    .actions button{padding:9px 10px;font-size:13px;flex:1 1 auto}
+    .layout-pick{font-size:12px;flex:1 1 100%}
+    .layout-pick select{flex:1;font-size:13px}
+    .wrap{padding:12px}
+
+    table.form, table.form thead{display:none}
+    table.form tbody{display:block}
+    table.form tr{
+      display:grid;
+      grid-template-columns:32px 1fr 32px;
+      grid-template-areas:
+        "print name del"
+        "print barcode barcode"
+        "print pricewrap pricewrap"
+        "print per100 per100";
+      gap:6px 8px;
+      background:#fff;border:1px solid var(--line);border-radius:10px;
+      padding:10px;margin-bottom:10px;position:relative;
+    }
+    table.form tr.unchecked{background:#fafafa}
+    table.form td{border-bottom:none;padding:0;display:block}
+    table.form td.col-print{grid-area:print;align-self:start;display:flex;align-items:center;justify-content:center}
+    table.form td.col-del{grid-area:del;align-self:start}
+    table.form td.col-idx{display:none}
+    table.form td:nth-of-type(3){grid-area:name}
+    table.form td:nth-of-type(4){grid-area:barcode}
+    table.form td.col-price{grid-area:pricewrap;display:inline-block;width:48%;vertical-align:top;padding-left:4%}
+    table.form td.col-weight{grid-area:pricewrap;display:inline-block;width:48%;vertical-align:top}
+    table.form td.col-per100{grid-area:per100;text-align:right;background:var(--accent-soft);border-radius:6px;padding:6px 8px !important}
+    table.form input,table.form select{font-size:15px}
+    .add-row{padding:0 0 12px}
+  }
+
   /* ----- PREVIEW (screen) ----- */
   .preview-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
   .preview-head h2{font-size:15px}
@@ -352,8 +390,24 @@ function upd(id,field,val){
   save();
 }
 function addRow(){products.push(blank()); renderRows(); save();}
-function delRow(id){products=products.filter(x=>x.id!==id); if(!products.length)addRow(); renderRows(); save();}
-function clearAll(){products=[]; for(let i=0;i<8;i++)products.push(blank()); renderRows(); save();}
+function delRow(id){
+  const r=products.find(x=>x.id===id);
+  const label = r && r.name ? `"${r.name}"` : "השורה הזו";
+  const ok=confirm(`למחוק את ${label}? הפעולה תימחק גם מהענן ומכל המכשירים המסונכרנים, ולא ניתן לשחזר אותה (אלא מגיבוי).`);
+  if(!ok) return;
+  products=products.filter(x=>x.id!==id);
+  if(!products.length)addRow();
+  renderRows();
+  save();
+}
+function clearAll(){
+  const filled=products.filter(p=>p.name||p.barcode||p.price).length;
+  if(filled>0){
+    const ok=confirm(`למחוק את כל ${filled} המוצרים? הפעולה תימחק גם מהענן ומכל המכשירים המסונכרנים, ולא ניתן לשחזר אותה (אלא מגיבוי).`);
+    if(!ok) return;
+  }
+  products=[]; for(let i=0;i<8;i++)products.push(blank()); renderRows(); save();
+}
 
 function togglePrint(id,checked){
   const r=products.find(x=>x.id===id);
@@ -680,6 +734,8 @@ function exportData(){
 function importData(input){
   const file=input.files[0];
   if(!file) return;
+  const ok=confirm("שחזור קובץ גיבוי יחליף את כל המוצרים הנוכחיים (בענן ובכל המכשירים המסונכרנים). להמשיך?");
+  if(!ok){ input.value=""; return; }
   const reader=new FileReader();
   reader.onload=()=>{
     try{
@@ -687,6 +743,9 @@ function importData(input){
       if(data && Array.isArray(data.products)){
         applyData(data);
         save();
+        alert("השחזור הצליח. "+data.products.length+" מוצרים נטענו.");
+      }else{
+        alert("הקובץ אינו תקין");
       }
     }catch(e){alert("הקובץ אינו תקין");}
   };
