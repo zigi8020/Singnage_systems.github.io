@@ -216,11 +216,9 @@
         <option value="8">8 מ"מ</option>
       </select>
     </label>
-    <button class="ghost" onclick="loadSample()">טען דוגמה</button>
     <button class="ghost" onclick="exportData()">⬇️ גיבוי</button>
     <button class="ghost" onclick="document.getElementById('importFile').click()">⬆️ שחזור</button>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this)">
-    <button class="ghost" onclick="clearAll()">נקה הכל</button>
     <button class="primary" onclick="window.print()">🖨️ הדפס</button>
   </div>
 </div>
@@ -248,8 +246,9 @@
       <tbody id="rows"></tbody>
     </table>
     <div class="note">
-      טיפ: המשקל מוזן ביחידה שבוחרים והחישוב מתנרמל ל-100. ברקוד רגיל = 12 או 13 ספרות (ספרת הביקורת מחושבת לבד).
-      <br>למוצרים ללא ברקוד: הזן קוד קצר (למשל 201) — המערכת תיצור ברקוד פנימי קצר (EAN-8) שמתחיל ב-2, ותדפיס מתחתיו את הקוד הקצר גדול להקלדה ידנית בקופה. מומלץ להתחיל מ-201 ולספור הלאה.
+      טיפ: לחץ 📷 ליד שדה הברקוד כדי לסרוק עם המצלמה (באייפון — דרך Safari). ברקוד רגיל = 12 או 13 ספרות, וספרת הביקורת מחושבת אוטומטית.
+      <br>למוצר ללא ברקוד: הזן קוד קצר (למשל 201) והמערכת תיצור לו ברקוד פנימי קצר וסריק. סמן ✓ ליד כל מוצר שתרצה לכלול בהדפסה, ובחר את גודל המדבקות בבורר "פריסה".
+      <br>בהדפסה: ודא גודל נייר A4, קנה מידה 100% (לא "התאם לדף"), ושוליים ברירת מחדל. הנתונים נשמרים אוטומטית ומסתנכרנים בין כל המכשירים.
     </div>
   </div>
 
