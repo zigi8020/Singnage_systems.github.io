@@ -267,7 +267,7 @@
       <button onclick="closeScanner()" title="סגור">✕</button>
     </div>
     <div id="scanReader">
-      <video id="scanVideo" playsinline muted></video>
+      <video id="scanVideo" playsinline autoplay muted></video>
       <div class="scan-frame"></div>
     </div>
     <div class="scan-controls">
@@ -525,11 +525,16 @@ function renderSheet(){
   document.querySelectorAll("svg.bc").forEach(svg=>{
     const code=svg.getAttribute("data-code");
     const fmt=svg.getAttribute("data-format");
+    const showText=()=>{ svg.parentElement.innerHTML=`<div style="font-size:${8*sc}pt;color:#666">${code||""}</div>`; };
     if(code && (fmt==="EAN13"||fmt==="EAN8")){
-      try{JsBarcode(svg,code,{format:fmt,width:1.4*sc,height:24*sc,fontSize:12*sc,margin:0,displayValue:true});}
-      catch(e){svg.parentElement.innerHTML=`<div style="font-size:${8*sc}pt;color:#999">${code}</div>`;}
+      let ok=true;
+      try{
+        JsBarcode(svg,code,{format:fmt,width:1.4*sc,height:24*sc,fontSize:12*sc,margin:0,displayValue:true,
+          valid:(v)=>{ ok=v; }});
+      }catch(e){ ok=false; }
+      if(!ok) showText(); // ברקוד לא תקין - מציגים את המספר כטקסט במקום קו שבור
     }else if(code){
-      svg.parentElement.innerHTML=`<div style="font-size:${8*sc}pt;color:#bbb">${code||""}</div>`;
+      showText();
     }
   });
 
@@ -599,6 +604,10 @@ function openScanner(rowId){
   }
 
   const video=document.getElementById("scanVideo");
+  // תכונות נדרשות לאייפון (Safari) - חובה כדי שהוידאו ינוגן inline
+  video.setAttribute("playsinline","");
+  video.setAttribute("autoplay","");
+  video.muted=true;
   // מצלמה אחורית ברזולוציה גבוהה. הפוקוס מוחל בנפרד אחרי הפתיחה (לא כאן, כי זה עלול להכשיל getUserMedia)
   const constraints={
     audio:false,
@@ -618,11 +627,13 @@ function openScanner(rowId){
     }
   }).then(()=>{
     hint.className="scan-hint"; hint.textContent="כוון את הברקוד למרכז המסגרת · לחיצה על המסך ממקדת מחדש";
+    // באייפון לפעמים צריך להפעיל את הוידאו ידנית
+    const p=video.play(); if(p && p.catch) p.catch(()=>{});
     // מנסים להפעיל פוקוס וכפתור פנס אם נתמכים
     setupTrackFeatures(video);
   }).catch(err=>{
     hint.className="scan-hint err";
-    hint.textContent="לא ניתן לפתוח את המצלמה: "+(err && err.name ? err.name : "שגיאה")+". ודא HTTPS והרשאת מצלמה.";
+    hint.textContent="לא ניתן לפתוח את המצלמה: "+(err && err.name ? err.name : "שגיאה")+". באייפון יש לפתוח ב-Safari ולתת הרשאת מצלמה.";
   });
 }
 
@@ -1123,7 +1134,7 @@ initFirebase();
       <button onclick="closeScanner()" title="סגור">✕</button>
     </div>
     <div id="scanReader">
-      <video id="scanVideo" playsinline muted></video>
+      <video id="scanVideo" playsinline autoplay muted></video>
       <div class="scan-frame"></div>
     </div>
     <div class="scan-controls">
@@ -1381,11 +1392,16 @@ function renderSheet(){
   document.querySelectorAll("svg.bc").forEach(svg=>{
     const code=svg.getAttribute("data-code");
     const fmt=svg.getAttribute("data-format");
+    const showText=()=>{ svg.parentElement.innerHTML=`<div style="font-size:${8*sc}pt;color:#666">${code||""}</div>`; };
     if(code && (fmt==="EAN13"||fmt==="EAN8")){
-      try{JsBarcode(svg,code,{format:fmt,width:1.4*sc,height:24*sc,fontSize:12*sc,margin:0,displayValue:true});}
-      catch(e){svg.parentElement.innerHTML=`<div style="font-size:${8*sc}pt;color:#999">${code}</div>`;}
+      let ok=true;
+      try{
+        JsBarcode(svg,code,{format:fmt,width:1.4*sc,height:24*sc,fontSize:12*sc,margin:0,displayValue:true,
+          valid:(v)=>{ ok=v; }});
+      }catch(e){ ok=false; }
+      if(!ok) showText(); // ברקוד לא תקין - מציגים את המספר כטקסט במקום קו שבור
     }else if(code){
-      svg.parentElement.innerHTML=`<div style="font-size:${8*sc}pt;color:#bbb">${code||""}</div>`;
+      showText();
     }
   });
 
@@ -1455,6 +1471,10 @@ function openScanner(rowId){
   }
 
   const video=document.getElementById("scanVideo");
+  // תכונות נדרשות לאייפון (Safari) - חובה כדי שהוידאו ינוגן inline
+  video.setAttribute("playsinline","");
+  video.setAttribute("autoplay","");
+  video.muted=true;
   // מצלמה אחורית ברזולוציה גבוהה. הפוקוס מוחל בנפרד אחרי הפתיחה (לא כאן, כי זה עלול להכשיל getUserMedia)
   const constraints={
     audio:false,
@@ -1474,11 +1494,13 @@ function openScanner(rowId){
     }
   }).then(()=>{
     hint.className="scan-hint"; hint.textContent="כוון את הברקוד למרכז המסגרת · לחיצה על המסך ממקדת מחדש";
+    // באייפון לפעמים צריך להפעיל את הוידאו ידנית
+    const p=video.play(); if(p && p.catch) p.catch(()=>{});
     // מנסים להפעיל פוקוס וכפתור פנס אם נתמכים
     setupTrackFeatures(video);
   }).catch(err=>{
     hint.className="scan-hint err";
-    hint.textContent="לא ניתן לפתוח את המצלמה: "+(err && err.name ? err.name : "שגיאה")+". ודא HTTPS והרשאת מצלמה.";
+    hint.textContent="לא ניתן לפתוח את המצלמה: "+(err && err.name ? err.name : "שגיאה")+". באייפון יש לפתוח ב-Safari ולתת הרשאת מצלמה.";
   });
 }
 
