@@ -99,12 +99,12 @@
     table.form tbody{display:block}
     table.form tr{
       display:grid;
-      grid-template-columns:32px 1fr 32px;
+      grid-template-columns:32px 1fr 1fr 32px;
       grid-template-areas:
-        "print name del"
-        "print barcode barcode"
-        "print pricewrap pricewrap"
-        "print per100 per100";
+        "print name name del"
+        "print barcode barcode barcode"
+        "print price weight weight"
+        "print per100 per100 per100";
       gap:6px 8px;
       background:#fff;border:1px solid var(--line);border-radius:10px;
       padding:10px;margin-bottom:10px;position:relative;
@@ -116,9 +116,12 @@
     table.form td.col-idx{display:none}
     table.form td:nth-of-type(3){grid-area:name}
     table.form td:nth-of-type(4){grid-area:barcode}
-    table.form td.col-price{grid-area:pricewrap;display:inline-block;width:48%;vertical-align:top;padding-left:4%}
-    table.form td.col-weight{grid-area:pricewrap;display:inline-block;width:48%;vertical-align:top}
+    table.form td.col-price{grid-area:price}
+    table.form td.col-weight{grid-area:weight}
+    table.form td.col-price::before{content:"מחיר ₪";display:block;font-size:11px;color:var(--muted);margin-bottom:2px}
+    table.form td.col-weight::before{content:"משקל / נפח";display:block;font-size:11px;color:var(--muted);margin-bottom:2px}
     table.form td.col-per100{grid-area:per100;text-align:right;background:var(--accent-soft);border-radius:6px;padding:6px 8px !important}
+    table.form td.col-price input,table.form td.col-weight input,table.form td.col-weight select{width:100%}
     table.form input,table.form select{font-size:15px}
     .add-row{padding:0 0 12px}
   }
@@ -960,12 +963,12 @@ initFirebase();
     table.form tbody{display:block}
     table.form tr{
       display:grid;
-      grid-template-columns:32px 1fr 32px;
+      grid-template-columns:32px 1fr 1fr 32px;
       grid-template-areas:
-        "print name del"
-        "print barcode barcode"
-        "print pricewrap pricewrap"
-        "print per100 per100";
+        "print name name del"
+        "print barcode barcode barcode"
+        "print price weight weight"
+        "print per100 per100 per100";
       gap:6px 8px;
       background:#fff;border:1px solid var(--line);border-radius:10px;
       padding:10px;margin-bottom:10px;position:relative;
@@ -977,9 +980,12 @@ initFirebase();
     table.form td.col-idx{display:none}
     table.form td:nth-of-type(3){grid-area:name}
     table.form td:nth-of-type(4){grid-area:barcode}
-    table.form td.col-price{grid-area:pricewrap;display:inline-block;width:48%;vertical-align:top;padding-left:4%}
-    table.form td.col-weight{grid-area:pricewrap;display:inline-block;width:48%;vertical-align:top}
+    table.form td.col-price{grid-area:price}
+    table.form td.col-weight{grid-area:weight}
+    table.form td.col-price::before{content:"מחיר ₪";display:block;font-size:11px;color:var(--muted);margin-bottom:2px}
+    table.form td.col-weight::before{content:"משקל / נפח";display:block;font-size:11px;color:var(--muted);margin-bottom:2px}
     table.form td.col-per100{grid-area:per100;text-align:right;background:var(--accent-soft);border-radius:6px;padding:6px 8px !important}
+    table.form td.col-price input,table.form td.col-weight input,table.form td.col-weight select{width:100%}
     table.form input,table.form select{font-size:15px}
     .add-row{padding:0 0 12px}
   }
