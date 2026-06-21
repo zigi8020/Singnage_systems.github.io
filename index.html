@@ -128,25 +128,31 @@
   .preview-head h2{font-size:15px}
   .preview-head .count{font-size:12.5px;color:var(--muted)}
 
-  .scaler{width:100%;max-width:480px;margin:0 auto 16px;aspect-ratio:210/297;
-    border:1px solid var(--line);border-radius:4px;overflow:hidden;background:#fff;position:relative}
+  /* ===== גיליון מדבקות (זהה לתצוגה ולהדפסה) ===== */
+  .scaler{
+    width:100%;max-width:480px;margin:0 auto 16px;
+    aspect-ratio:210/297;
+    border:1px solid var(--line);border-radius:4px;
+    overflow:hidden;background:#fff;position:relative;
+  }
   .sheet{
     position:absolute;top:0;left:0;
     width:210mm;height:297mm;
     transform-origin:top left;
-    padding-top:var(--mt,5mm);padding-bottom:var(--mt,5mm);
+    box-sizing:border-box;
+    padding:var(--mt,5mm) 0;
     display:grid;
     grid-template-columns:repeat(var(--cols,2), var(--lw,105mm));
     grid-template-rows:repeat(var(--rows,8), var(--lh,35mm));
     justify-content:center;
     align-content:start;
-    row-gap:var(--rg,0mm);
   }
 
   .label{
-    border:.4mm dashed #e2e2e2;padding:1.5mm 4mm;
-    height:var(--lh,35mm);min-height:0;box-sizing:border-box;
-    display:flex;flex-direction:column;justify-content:flex-start;gap:.5mm;overflow:hidden;position:relative;
+    box-sizing:border-box;
+    height:var(--lh,35mm);overflow:hidden;
+    padding:1.5mm 4mm;
+    display:flex;flex-direction:column;justify-content:flex-start;gap:.5mm;position:relative;
   }
   .label .lname{font-size:calc(11pt * var(--sc,1));font-weight:700;line-height:1.1;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
@@ -157,35 +163,32 @@
   .label .per100{font-size:calc(10pt * var(--sc,1));color:#222;text-align:left;line-height:1.15;font-weight:600}
   .label .per100 b{font-size:calc(12.5pt * var(--sc,1));font-weight:800}
   .label .barcode-wrap{display:flex;flex-direction:column;align-items:center;margin-top:0}
-  .label .manual-code{font-size:calc(10pt * var(--sc,1));font-weight:800;letter-spacing:.5px;margin-top:.3mm;color:#000}
   .label svg{max-width:68%;max-height:calc(7mm * var(--sc,1));height:auto}
-  .label.empty{border-color:#f0f0f0}
 
   @media (max-width:980px){
     .scaler{max-width:100%}
   }
 
-  /* ----- PRINT ----- */
+  /* ===== הדפסה ===== */
   @media print{
     @page{size:A4 portrait;margin:0}
-    html,body{margin:0;padding:0;width:210mm;height:auto}
-    body{background:#fff}
-    .topbar,.wrap > .panel,.preview-head,.note,.no-print{display:none !important}
-    .wrap{padding:0 !important;margin:0 !important;max-width:none !important}
+    html,body{margin:0;padding:0;background:#fff}
+    .topbar,.wrap>.panel,.preview-head,.note,.no-print{display:none !important}
+    .wrap{padding:0;margin:0;max-width:none}
     .print-zone{display:block !important}
+
     .scaler{
-      width:210mm;height:290mm;max-width:none;
-      aspect-ratio:auto;border:0;border-radius:0;margin:0;padding:0;
-      overflow:hidden;position:static;display:block;
-      page-break-inside:avoid;break-inside:avoid;
+      width:210mm;height:297mm;max-width:none;margin:0;padding:0;
+      border:0;border-radius:0;overflow:hidden;position:static;display:block;
+      break-inside:avoid;page-break-inside:avoid;
     }
-    .scaler:not(:last-child){page-break-after:always;break-after:page}
+    .scaler:not(:last-child){break-after:page;page-break-after:always}
+
     .sheet{
-      position:static;box-shadow:none;margin:0;transform:none !important;
-      width:210mm;height:290mm;overflow:hidden;row-gap:0 !important;
-      page-break-inside:avoid;break-inside:avoid;
+      position:static;transform:none !important;
+      width:210mm;height:297mm;margin:0;box-shadow:none;
     }
-    .label{border:0 !important;page-break-inside:avoid;break-inside:avoid}
+    .label{break-inside:avoid;page-break-inside:avoid}
   }
   .print-zone{display:block}
 </style>
@@ -486,15 +489,12 @@ function renderSheet(){
     const sheet=document.createElement("div");
     sheet.className="sheet";
     const mt = (marginOverride!==null) ? marginOverride : L.mt;
-    // מדבקות צמודות זו לזו (כמו גיליון אמיתי), השוליים העליונים קובעים את ההתחלה
-    const rg = 0;
     sheet.style.setProperty("--cols",L.cols);
     sheet.style.setProperty("--rows",L.rows);
     sheet.style.setProperty("--sc",L.sc);
     sheet.style.setProperty("--lw",L.lw+"mm");
     sheet.style.setProperty("--lh",L.lh+"mm");
     sheet.style.setProperty("--mt",mt+"mm");
-    sheet.style.setProperty("--rg",rg.toFixed(3)+"mm");
     for(let i=0;i<perPage;i++){
       const item=valid[pg*perPage+i];
       const cell=document.createElement("div");
