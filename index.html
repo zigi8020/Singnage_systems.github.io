@@ -90,7 +90,7 @@
     grid-template-columns:repeat(var(--cols,2), var(--lw,105mm));
     grid-template-rows:repeat(var(--rows,8), var(--lh,35mm));
     justify-content:center;
-    align-content:center;
+    align-content:space-between;
   }
 
   .label{
@@ -120,7 +120,7 @@
     .topbar,.wrap > .panel,.preview-head,.note,.no-print{display:none !important}
     .print-zone{display:block !important}
     .scaler{width:210mm;max-width:none;height:auto;aspect-ratio:auto;border:0;border-radius:0;margin:0;overflow:visible;position:static}
-    .sheet{position:static;box-shadow:none;margin:0;transform:none !important;width:210mm;height:296mm;}
+    .sheet{position:static;box-shadow:none;margin:0;transform:none !important;width:210mm;height:297mm;overflow:hidden}
     .scaler + .scaler{page-break-before:always}
     .label{border:0 !important}
   }
@@ -292,8 +292,10 @@ function per100Label(unit){
 function renderRows(){
   const tb=document.getElementById("rows");
   tb.innerHTML="";
+  // מציגים בסדר הפוך: החדש למעלה, הראשון (#1) למטה
   products.forEach((row,i)=>{
     const tr=document.createElement("tr");
+    tr.dataset.id=row.id;
     if(row.print===false) tr.className="unchecked";
     const pv=per100(row.price,row.weight,row.unit);
     const pvTxt = pv!==null ? `₪${pv.toFixed(2)} / 100${per100Label(row.unit)}` : "—";
@@ -316,7 +318,7 @@ function renderRows(){
       <td class="col-per100">${pvTxt}</td>
       <td class="col-del"><button class="del-btn" onclick="delRow(${row.id})" title="מחק">✕</button></td>
     `;
-    tb.appendChild(tr);
+    tb.insertBefore(tr, tb.firstChild); // הופך את הסדר: השורה הכי חדשה למעלה
   });
   renderSheet();
 }
@@ -328,8 +330,7 @@ function upd(id,field,val){
   if(!r) return;
   r[field]=val;
   // עדכון נקודתי בלי לצייר מחדש את שדות הקלט (כדי שהמקלדת בנייד לא תיסגר)
-  const idx=products.findIndex(x=>x.id===id);
-  const tr=document.querySelectorAll("#rows tr")[idx];
+  const tr=document.querySelector(`#rows tr[data-id="${id}"]`);
   if(tr){
     if(field==="price"||field==="weight"||field==="unit"){
       const pv=per100(r.price,r.weight,r.unit);
@@ -353,8 +354,7 @@ function togglePrint(id,checked){
   const r=products.find(x=>x.id===id);
   if(!r) return;
   r.print=checked;
-  const idx=products.findIndex(x=>x.id===id);
-  const tr=document.querySelectorAll("#rows tr")[idx];
+  const tr=document.querySelector(`#rows tr[data-id="${id}"]`);
   if(tr) tr.classList.toggle("unchecked", !checked);
   syncPrintAll();
   renderSheet();
@@ -521,7 +521,7 @@ function onScanSuccess(code){
   renderRows();
   save();
   // משוב קצר
-  const tr=document.querySelectorAll("#rows tr")[products.findIndex(x=>x.id===scanTargetId)];
+  const tr=document.querySelector(`#rows tr[data-id="${scanTargetId}"]`);
   if(tr){const inp=tr.querySelector(".bc-cell input"); if(inp){inp.style.background="#d8f3e3"; setTimeout(()=>inp.style.background="",900);}}
 }
 function closeScanner(){
