@@ -59,6 +59,9 @@
   table.form input:focus{outline:none;border-color:var(--accent);background:#fff}
   table.form input.err{border-color:#d23b3b;background:#fdecec}
   .col-idx{width:34px;text-align:center;color:var(--muted);font-size:13px}
+  .col-print{width:38px;text-align:center}
+  .col-print input{width:18px;height:18px;cursor:pointer;accent-color:var(--accent)}
+  tr.unchecked td:not(.col-print){opacity:.4}
   .col-price,.col-weight{width:110px}
   .col-per100{width:120px;font-weight:700;color:var(--accent);text-align:center;font-size:13.5px}
   .col-del{width:40px;text-align:center}
@@ -82,12 +85,12 @@
     position:absolute;top:0;left:0;
     width:210mm;height:297mm;
     transform-origin:top left;
-    padding-top:var(--mt,5mm);
+    padding-top:var(--mt,5mm);padding-bottom:var(--mt,5mm);
     display:grid;
     grid-template-columns:repeat(var(--cols,2), var(--lw,105mm));
     grid-template-rows:repeat(var(--rows,8), var(--lh,35mm));
     justify-content:center;
-    align-content:start;
+    align-content:center;
   }
 
   .label{
@@ -101,6 +104,7 @@
   .label .per100{font-size:calc(11.5pt * var(--sc,1));color:#222;text-align:left;line-height:1.25;font-weight:600}
   .label .per100 b{font-size:calc(14.5pt * var(--sc,1));font-weight:800}
   .label .barcode-wrap{display:flex;flex-direction:column;align-items:center;margin-top:1mm}
+  .label .manual-code{font-size:calc(11pt * var(--sc,1));font-weight:800;letter-spacing:.5px;margin-top:.5mm;color:#000}
   .label svg{max-width:78%;max-height:calc(9mm * var(--sc,1));height:auto}
   .label.empty{border-color:#f0f0f0}
 
@@ -111,11 +115,13 @@
   /* ----- PRINT ----- */
   @media print{
     @page{size:A4;margin:0}
+    html,body{margin:0;padding:0}
     body{background:#fff}
     .topbar,.wrap > .panel,.preview-head,.note,.no-print{display:none !important}
     .print-zone{display:block !important}
     .scaler{width:210mm;max-width:none;height:auto;aspect-ratio:auto;border:0;border-radius:0;margin:0;overflow:visible;position:static}
-    .sheet{position:static;box-shadow:none;margin:0;transform:none !important;width:210mm;height:297mm;page-break-after:always}
+    .sheet{position:static;box-shadow:none;margin:0;transform:none !important;width:210mm;height:296mm;}
+    .scaler + .scaler{page-break-before:always}
     .label{border:0 !important}
   }
   .print-zone{display:block}
@@ -164,6 +170,7 @@
     <table class="form">
       <thead>
         <tr>
+          <th class="col-print"><input type="checkbox" id="printAll" onchange="toggleAll(this.checked)" title="בחר/בטל הכל" checked></th>
           <th class="col-idx">#</th>
           <th>שם המוצר</th>
           <th>ברקוד (EAN-13)</th>
@@ -177,8 +184,8 @@
     </table>
     <div class="add-row"><button onclick="addRow()">+ הוסף שורה</button></div>
     <div class="note">
-      טיפ: המשקל מוזן ביחידה שבוחרים (גרם / ק"ג / מ"ל / ליטר) והחישוב מתנרמל ל-100. ברקוד EAN-13 = 13 ספרות.
-      הספרה ה-13 (ביקורת) מחושבת אוטומטית אם תזין 12 ספרות.
+      טיפ: המשקל מוזן ביחידה שבוחרים והחישוב מתנרמל ל-100. ברקוד רגיל = 12 או 13 ספרות (ספרת הביקורת מחושבת לבד).
+      <br>למוצרים ללא ברקוד: הזן קוד קצר (למשל 201) — המערכת תיצור ברקוד פנימי קצר (EAN-8) שמתחיל ב-2, ותדפיס מתחתיו את הקוד הקצר גדול להקלדה ידנית בקופה. מומלץ להתחיל מ-201 ולספור הלאה.
     </div>
   </div>
 
@@ -222,17 +229,55 @@ let marginOverride = null; // אם המשתמש דורס ידנית את השו�
 let products = [];
 let uid = 0;
 
-function blank(){return {id:++uid,name:"",barcode:"",price:"",weight:"",unit:"g"};}
+function blank(){return {id:++uid,name:"",barcode:"",price:"",weight:"",unit:"g",print:true};}
 
 function ean13CheckDigit(d12){
   let sum=0;
   for(let i=0;i<12;i++){sum += (+d12[i]) * (i%2===0?1:3);}
   return (10 - (sum%10))%10;
 }
-function normalizeBarcode(raw){
+function ean8CheckDigit(d7){
+  let sum=0;
+  for(let i=0;i<7;i++){sum += (+d7[i]) * (i%2===0?3:1);}
+  return (10 - (sum%10))%10;
+}
+
+// מנתח את הקלט ומחזיר {format, full, manual, valid}
+// - 1-7 ספרות  => קוד פנימי קצר -> EAN-8 (מרופד, מתחיל ב-2 לשימוש פנימי)
+// - 8 ספרות    => EAN-8 מלא כמו שהוא
+// - 12 ספרות   => EAN-13 (מוסיף ספרת ביקורת)
+// - 13 ספרות   => EAN-13 כמו שהוא
+function resolveBarcode(raw){
   const d=(raw||"").replace(/\D/g,"");
-  if(d.length===12) return d + ean13CheckDigit(d);
-  return d;
+  if(!d) return {format:null, full:"", manual:"", valid:false};
+
+  if(d.length>=1 && d.length<=6){
+    // קוד פנימי קצר. בונים: 2 (סימון פנימי) + ריפוד אפסים + הקוד, סה"כ 7 ספרות + ביקורת.
+    const base = ("2" + d.padStart(6,"0")).slice(0,7);
+    const full = base + ean8CheckDigit(base);
+    return {format:"EAN8", full, manual:d, valid:true};
+  }
+  if(d.length===7){
+    const full = d + ean8CheckDigit(d);
+    return {format:"EAN8", full, manual:d, valid:true};
+  }
+  if(d.length===8){
+    return {format:"EAN8", full:d, manual:d, valid:true};
+  }
+  if(d.length===12){
+    const full=d+ean13CheckDigit(d);
+    return {format:"EAN13", full, manual:full, valid:true};
+  }
+  if(d.length===13){
+    return {format:"EAN13", full:d, manual:d, valid:true};
+  }
+  // 9,10,11 ספרות = לא תקין לאף פורמט
+  return {format:null, full:d, manual:d, valid:false};
+}
+
+// תאימות לאחור - מחזיר את הברקוד המלא לתצוגה
+function normalizeBarcode(raw){
+  return resolveBarcode(raw).full;
 }
 function per100(price,weight,unit){
   const p=parseFloat(price), w=parseFloat(weight);
@@ -249,14 +294,16 @@ function renderRows(){
   tb.innerHTML="";
   products.forEach((row,i)=>{
     const tr=document.createElement("tr");
+    if(row.print===false) tr.className="unchecked";
     const pv=per100(row.price,row.weight,row.unit);
     const pvTxt = pv!==null ? `₪${pv.toFixed(2)} / 100${per100Label(row.unit)}` : "—";
-    const bc=normalizeBarcode(row.barcode);
-    const bcErr = row.barcode && bc.length!==13;
+    const bcInfo=resolveBarcode(row.barcode);
+    const bcErr = row.barcode && !bcInfo.valid;
     tr.innerHTML=`
+      <td class="col-print"><input type="checkbox" ${row.print!==false?'checked':''} onchange="togglePrint(${row.id},this.checked)" title="לכלול בהדפסה"></td>
       <td class="col-idx">${i+1}</td>
       <td><input value="${esc(row.name)}" placeholder="לדוגמה: חלב תנובה 3%" oninput="upd(${row.id},'name',this.value)"></td>
-      <td><div class="bc-cell"><input value="${esc(row.barcode)}" placeholder="12 או 13 ספרות" class="${bcErr?'err':''}" inputmode="numeric" oninput="upd(${row.id},'barcode',this.value)"><button type="button" class="scan-btn" onclick="openScanner(${row.id})" title="סרוק ברקוד">📷</button></div></td>
+      <td><div class="bc-cell"><input value="${esc(row.barcode)}" placeholder="ברקוד או קוד קצר" class="${bcErr?'err':''}" inputmode="numeric" oninput="upd(${row.id},'barcode',this.value)"><button type="button" class="scan-btn" onclick="openScanner(${row.id})" title="סרוק ברקוד">📷</button></div></td>
       <td class="col-price"><input value="${esc(row.price)}" placeholder="0.00" inputmode="decimal" oninput="upd(${row.id},'price',this.value)"></td>
       <td class="col-weight">
         <div style="display:flex;gap:4px">
@@ -290,9 +337,9 @@ function upd(id,field,val){
       if(cell) cell.textContent = pv!==null ? `₪${pv.toFixed(2)} / 100${per100Label(r.unit)}` : "—";
     }
     if(field==="barcode"){
-      const bc=normalizeBarcode(r.barcode);
-      const inp=tr.querySelector("td:nth-child(3) input");
-      if(inp) inp.classList.toggle("err", r.barcode && bc.length!==13);
+      const info=resolveBarcode(r.barcode);
+      const inp=tr.querySelector(".bc-cell input");
+      if(inp) inp.classList.toggle("err", r.barcode && !info.valid);
     }
   }
   renderSheet();
@@ -301,6 +348,31 @@ function upd(id,field,val){
 function addRow(){products.push(blank()); renderRows(); save();}
 function delRow(id){products=products.filter(x=>x.id!==id); if(!products.length)addRow(); renderRows(); save();}
 function clearAll(){products=[]; for(let i=0;i<8;i++)products.push(blank()); renderRows(); save();}
+
+function togglePrint(id,checked){
+  const r=products.find(x=>x.id===id);
+  if(!r) return;
+  r.print=checked;
+  const idx=products.findIndex(x=>x.id===id);
+  const tr=document.querySelectorAll("#rows tr")[idx];
+  if(tr) tr.classList.toggle("unchecked", !checked);
+  syncPrintAll();
+  renderSheet();
+  save();
+}
+function toggleAll(checked){
+  products.forEach(p=>p.print=checked);
+  renderRows(); // מצייר מחדש כדי לעדכן את כל הצ'קבוקסים
+  save();
+}
+function syncPrintAll(){
+  const filled=products.filter(p=>p.name||p.barcode||p.price);
+  const box=document.getElementById("printAll");
+  if(!box || !filled.length) return;
+  const on=filled.filter(p=>p.print!==false).length;
+  box.checked = on===filled.length;
+  box.indeterminate = on>0 && on<filled.length;
+}
 
 function loadSample(){
   products=[
@@ -320,7 +392,7 @@ function renderSheet(){
   zone.innerHTML="";
   const L=LAYOUTS[currentLayout];
   const perPage=L.cols*L.rows;
-  const valid = products.filter(p=>p.name||p.barcode||p.price);
+  const valid = products.filter(p=>(p.name||p.barcode||p.price) && p.print!==false);
   const pages=Math.max(1,Math.ceil(valid.length/perPage));
 
   for(let pg=0;pg<pages;pg++){
@@ -342,14 +414,18 @@ function renderSheet(){
       if(item){
         const pv=per100(item.price,item.weight,item.unit);
         const price=parseFloat(item.price);
-        const bc=normalizeBarcode(item.barcode);
+        const info=resolveBarcode(item.barcode);
+        const isInternal = info.format==="EAN8";
         cell.innerHTML=`
           <div class="lname">${esc(item.name||" ")}</div>
           <div class="midrow">
             <div class="price">${price?price.toFixed(2):"—"}<span class="ils"> ₪</span></div>
             <div class="per100">${pv!==null?`<b>₪${pv.toFixed(2)}</b><br>ל-100 ${per100Label(item.unit)}`:""}</div>
           </div>
-          <div class="barcode-wrap"><svg class="bc" data-code="${bc}"></svg></div>
+          <div class="barcode-wrap">
+            <svg class="bc" data-code="${info.full}" data-format="${info.format||""}"></svg>
+            ${isInternal?`<div class="manual-code">קוד: ${esc(info.manual)}</div>`:""}
+          </div>
         `;
       }
       sheet.appendChild(cell);
@@ -358,22 +434,25 @@ function renderSheet(){
     zone.appendChild(scaler);
   }
 
-  // render barcodes — בגודל שמתאים לפריסה הנבחרת
+  // render barcodes — בגודל ובפורמט שמתאים
   const sc=L.sc;
   document.querySelectorAll("svg.bc").forEach(svg=>{
     const code=svg.getAttribute("data-code");
-    if(code && code.length===13){
-      try{JsBarcode(svg,code,{format:"EAN13",width:1.4*sc,height:24*sc,fontSize:12*sc,margin:0,displayValue:true});}
+    const fmt=svg.getAttribute("data-format");
+    if(code && (fmt==="EAN13"||fmt==="EAN8")){
+      try{JsBarcode(svg,code,{format:fmt,width:1.4*sc,height:24*sc,fontSize:12*sc,margin:0,displayValue:true});}
       catch(e){svg.parentElement.innerHTML=`<div style="font-size:${8*sc}pt;color:#999">${code}</div>`;}
     }else if(code){
       svg.parentElement.innerHTML=`<div style="font-size:${8*sc}pt;color:#bbb">${code||""}</div>`;
     }
   });
 
-  document.getElementById("counter").textContent=`${valid.length} מוצרים · ${perPage} בדף · ${pages} דף${pages>1?"ים":""}`;
+  const totalFilled=products.filter(p=>p.name||p.barcode||p.price).length;
+  document.getElementById("counter").textContent=`${valid.length} להדפסה (מתוך ${totalFilled}) · ${perPage} בדף · ${pages} דף${pages>1?"ים":""}`;
   const meta=document.getElementById("layoutMeta");
   if(meta) meta.textContent="A4 · "+L.name;
 
+  syncPrintAll();
   fitSheets();
 }
 
